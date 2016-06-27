@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Photomosaic</title>
+  <script src="node_modules/babel-polyfill/dist/polyfill.js"></script>
+</head>
+<body>
+
+  <div id="photomosaic" style="width: 500px; overflow: hidden"></div>
+
+  <script src="lib/index.js"></script>
+
+  <script>
+    photomosaic.init('photomosaic', {}, [
+      'images/200x400.jpg',
+      //'images/200x400.jpg',
+      'images/400x250.jpg',
+      //'images/600x200.jpg',
+      'images/10x10.jpg',
+      //'images/600x200.jpg',
+    ])
+  </script>
+
+</body>
+</html>
