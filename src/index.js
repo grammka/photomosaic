@@ -38,10 +38,6 @@
     return Math.min.apply(null, arr)
   }
 
-  function getMaxInArray(arr) {
-  	return Math.max.apply(null, arr)
-  }
-
   function getArraySummary(arr) {
     return arr.reduce((sum, curr) => {
       return sum + curr
@@ -118,6 +114,7 @@
       el.addEventListener('click', () => {
         Data.images.splice(thumb.img.index, 1)
 
+        PhotoMosaic.setIndexes()
         PhotoMosaic.processThumbs()
         PhotoMosaic.appendThumbs()
       })
@@ -156,13 +153,19 @@
       return el
     },
 
-    processInlineThumbs: (images) => {
-      const avgRatio  = getArraySummary(images.map((img) => img.width)) / Data.maxW
-      const minH      = getMinInArray(images.map((img) => img.height))
+    processInlineThumbs: (images, minH, maxH) => {
+      const avgRatio        = getArraySummary(images.map((img) => img.width)) / Data.maxW
+      const minImageHeight  = getMinInArray(images.map((img) => img.height))
+
+      let height = maxH < minImageHeight ? maxH : minImageHeight
+
+      if (height < options.sizes.minThumbSize) {
+        height = options.sizes.minThumbSize
+      }
 
       return images.map((img) => {
         const tW = Math.floor(img.width / avgRatio)
-        const tH = minH
+        const tH = height
 
         return PhotoMosaic.compute(img, tW, tH)
       })
@@ -325,76 +328,72 @@
       ////   5+   ////////////////////////////////////////////////////////////////////
 
       else {
-        //const avgH = getAverageInArray(images.map((img) => img.height))
-
         let lines = []
         let line = []
         let lineWidth = 0
 
-        let i = 0
-        while (i < Data.images.length) {
-          let img = Data.images[i]
+        function calculate(line) {
+          let avgH
+          let minH
+          let items
 
-          // sum inline images width
-          lineWidth += img.width
-          line[line.length] = { ...img }
-
-          // if line width more than container width then
-          if (lineWidth > Data.maxW) {
-            // get minimal image height in line
-            let minH = getMinInArray(line.map((img) => img.height))
-
-            // if minimal image height less than minRow height from options
-            if (minH < options.sizes.minThumbSize) {
-              minH = options.sizes.minThumbSize
-            }
-
-            lineWidth = 0
-
-            each(line, (img) => {
-              img.width   = minH * img.ratio
-              img.height  = minH
-
-              lineWidth += img.width
-            })
-
-            if (lineWidth > Data.maxW || i == Data.images.length - 1) {
-              if (line.length > 1) {
-                line.splice(-1)
-                i--
-              }
-
-              lines[lines.length] = line
-              line = []
-              lineWidth = 0
-            }
+          if (line.length == 1) {
+            avgH  = line[0].height
+            minH  = line[0].height
+            items = line
           }
-          else if (i == Data.images.length - 1) {
-            lines[lines.length] = line
+          else {
+            avgH  = getAverageInArray(line.map((img) => img.height))
+            minH  = getMinInArray(line.map((img) => img.height))
+            items = line
           }
 
-          i++
+          return { avgH, minH, items }
         }
 
-        console.log(lines);
+        each(Data.images, (img, index) => {
+          line[line.length] = img
+          lineWidth += img.width
 
-        result = lines.reduce((result, curr) => {
-          return [ ...result, ...PhotoMosaic.processInlineThumbs(curr) ]
+          if (lineWidth > Data.maxW) {
+            lines[lines.length] = calculate(line)
+
+            line = []
+            lineWidth = 0
+          }
+          else if (index == Data.images.length - 1) {
+            lines[lines.length] = calculate(line)
+          }
+        })
+
+        const linesHeightRatio = getArraySummary(lines.map((line) => line.avgH)) / Data.maxH
+
+        each(lines, (line) => {
+          line.maxH = line.avgH / linesHeightRatio
+        })
+
+        result = lines.reduce((result, line) => {
+          return [ ...result, ...PhotoMosaic.processInlineThumbs(line.items, line.minH, line.maxH) ]
         }, [])
       }
 
       Data.thumbs = result
     },
 
+    setIndexes: () => {
+      Data.images.map((img, index) => {
+        img.index = index
+      })
+    },
+
     loadImages: async (imageUrls) => {
-      const loadedImages = await Promise.all(imageUrls.map((url, index) => {
+      const loadedImages = await Promise.all(imageUrls.map((url) => {
         return new Promise((resolve) => {
           let img = new Image()
           img.onload = () => {
             let params = {}
 
             params.el       = img
-            params.index    = index
             params.ratio    = img.width / img.height
             params.orient   = params.ratio > 1.2 ? 'l' /* landscape */ : params.ratio < 0.8 ? 'p' /* portrait */ : 'q' /* quadratic */
 
@@ -429,6 +428,7 @@
         await PhotoMosaic.loadImages(imageUrls)
       }
 
+      PhotoMosaic.setIndexes()
       PhotoMosaic.processThumbs()
       PhotoMosaic.appendThumbs()
     }
