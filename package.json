@@ -23,7 +23,9 @@
     "dev": "babel ./src --out-dir ./lib  --watch",
     "build": "npm run clean && babel ./src --out-dir ./lib"
   },
-  "dependencies": {},
+  "dependencies": {
+    "wolfy87-eventemitter": "^5.1.0"
+  },
   "devDependencies": {
     "babel-cli": "^6.7.5",
     "babel-core": "^6.7.6",
