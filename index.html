@@ -7,20 +7,30 @@
 </head>
 <body>
 
-  <div id="photomosaic" style="width: 500px; overflow: hidden"></div>
+  <div id="photomosaic" style="width: 500px"></div>
 
   <script src="lib/index.js"></script>
 
   <script>
-    photomosaic.init('photomosaic', {}, [
-      'images/200x400.jpg',
-      'images/200x400.jpg',
-      'images/400x250.jpg',
-      'images/600x70.jpg',
-      'images/10x10.jpg',
-      //'images/600x200.jpg',
-      //'images/600x200.jpg',
-      'images/200x400.jpg',
+    photomosaic.init('photomosaic', {
+      editable: false
+    }, [
+      'photos/2.jpg',
+      'photos/1.jpg',
+      'photos/3.jpg',
+      'photos/4.jpg',
+      'photos/5.jpg',
+      'photos/6.jpg',
+      'photos/3.jpg',
+      'photos/2.jpg',
+      //'images/200x400.jpg',
+      //'images/200x400.jpg',
+      //'images/400x250.jpg',
+      //'images/600x70.jpg',
+      //'images/600x70.jpg',
+      //'images/600x70.jpg',
+      //'images/600x70.jpg',
+      //'images/10x10.jpg',
       //'images/400x250.jpg',
     ])
   </script>

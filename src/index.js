@@ -11,8 +11,10 @@
   }
 
   let options = {
+    editable: false,
     sizes: {
       gutter: 5,
+      containerMaxHeight: 0.8,
       firstThumbMaxWidth: 0.666,
       firstThumbMaxHeight: 0.666,
       minThumbSize: 100
@@ -62,20 +64,77 @@
       }
     },
 
-    appendThumbs: () => {
-      const wrapper = document.createElement('div')
+    drawMoreBlock: () => {
+      const block = document.createElement('div')
+      const left  = document.createElement('div')
+      const right = document.createElement('div')
 
-      wrapper.style.overflow  = 'hidden'
-      wrapper.style.margin    = '0 auto'
-      wrapper.style.width     = size(Data.wrapperWidth ? Data.wrapperWidth : Data.containerWidth)
-      wrapper.style.margin    = `-${ options.sizes.gutter }px 0 0 -${ options.sizes.gutter }px`
+      block.style.padding       = '10px 5px 5px'
+      block.style.overflow      = 'hidden'
+      block.style.color         = '#666'
+      block.style.fontSize      = size(13)
+      block.style.fontFamily    = 'Tahoma, sans-serif'
 
-      each(Data.thumbs, (thumb) => {
-        wrapper.appendChild(PhotoMosaic.thumbElement(thumb))
+      left.style.float    = 'left'
+      left.innerHTML      = `${ Data.thumbs.length } of ${ Data.images.length }`
+
+      right.style.float   = 'right'
+      right.style.cursor  = 'pointer'
+      right.innerHTML     = 'Show more'
+
+      right.addEventListener('mouseenter', () => {
+        right.style.color = '#000'
       })
 
+      right.addEventListener('mouseleave', () => {
+        right.style.color = '#666'
+      })
+
+      right.addEventListener('click', () => {
+        // TODO open more
+      })
+
+
+      block.appendChild(left)
+      block.appendChild(right)
+
+      return block
+    },
+
+    drawWrapper: () => {
+      const el = document.createElement('div')
+
+      el.style.overflow    = 'hidden'
+      el.style.margin      = '0 auto'
+      el.style.width       = size(Data.wrapperWidth ? Data.wrapperWidth : Data.containerWidth)
+      el.style.margin      = `-${ options.sizes.gutter }px 0 0 -${ options.sizes.gutter }px`
+
+      each(Data.thumbs, (thumb) => {
+        el.appendChild(PhotoMosaic.thumbElement(thumb))
+      })
+
+      return el
+    },
+
+    drawCard: () => {
+      const el = document.createElement('div')
+
+      el.style.display      = 'inline-block'
+      el.style.padding      = size(5)
+      el.style.boxShadow    = 'rgba(0,0,0, 0.19) 0 1px 1px 1px'
+
+      el.appendChild(PhotoMosaic.drawWrapper())
+
+      if (Data.thumbs.length < Data.images.length) {
+        el.appendChild(PhotoMosaic.drawMoreBlock())
+      }
+
+      return el
+    },
+
+    appendThumbs: () => {
       Data.container.innerHTML = ''
-      Data.container.appendChild(wrapper)
+      Data.container.appendChild(PhotoMosaic.drawCard())
     },
 
     thumbImgElement: (thumb) => {
@@ -131,7 +190,8 @@
       el.style.textAlign        = 'center'
       el.style.fontSize         = size(15)
       el.style.fontFamily       = 'Tahoma, sans-serif'
-      el.innerHTML              = '&times;'
+
+      el.innerHTML = '&times;'
 
       return el
     },
@@ -147,7 +207,9 @@
       el.style.overflow   = 'hidden'
       el.style.float      = 'left'
 
-      el.appendChild(PhotoMosaic.thumbCloseElement(thumb))
+      if (options.editable) {
+        el.appendChild(PhotoMosaic.thumbCloseElement(thumb))
+      }
       el.appendChild(PhotoMosaic.thumbImgElement(thumb))
 
       return el
@@ -190,7 +252,7 @@
         const tW = minW
         let tH
 
-        if (index == Data.images.length - 1) {
+        if (index == images.length - 1) {
           tH = contH - sumH
         } else {
           tH = Math.floor(img.height / avgRatio)
@@ -203,7 +265,7 @@
 
     processThumbs: () => {
       Data.maxW          = Data.containerWidth = Data.container.offsetWidth
-      Data.maxH          = Data.maxW * 0.666
+      Data.maxH          = Data.maxW * options.sizes.containerMaxHeight
       Data.wrapperWidth  = 0
 
       const count   = Data.images.length
@@ -215,6 +277,24 @@
           orients += img.orient
         }
       })
+
+
+      let commonOrient
+
+      if (Data.images[0].width > Data.maxW) {
+        const tW = Data.maxW
+        const tH = Data.maxH * options.firstThumbMaxHeight
+        result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+
+        commonOrient = 'l' /* landscape */
+      }
+      else {
+        const tW = Data.maxW * options.firstThumbMaxWidth
+        const tH = Data.maxH
+        result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+
+        commonOrient = 'p' /* portrait */
+      }
 
 
       ////   1   ////////////////////////////////////////////////////////////////////////
@@ -234,93 +314,71 @@
       }
 
 
-      ////   2 - 4   ///////////////////////////////////////////////////////////////////
+      ////   2   ////////////////////////////////////////////////////////////////////
 
-      else if (count < 5) {
-        let commonOrient
+      else if (count == 2) {
+        if (orients == 'll') {
+          // TODO check if Images width is more than Container's
 
-        if (Data.images[0].width > Data.maxW) {
-          const tW = Data.maxW
-          const tH = Data.maxH * options.firstThumbMaxHeight
-          result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
-
-          commonOrient = 'l' /* landscape */
+          result[0] = PhotoMosaic.compute(Data.images[0], Data.maxW,  Math.floor(Data.maxW / Data.images[0].ratio))
+          result[1] = PhotoMosaic.compute(Data.images[1], Data.maxW,  Math.floor(Data.maxW / Data.images[1].ratio))
         }
         else {
-          const tW = Data.maxW * options.firstThumbMaxWidth
-          const tH = Data.maxH
+          result = PhotoMosaic.processInlineThumbs(Data.images)
+        }
+      }
+
+
+      ////   3   ///////////////////////////////////////////////////////////////////
+
+      else if (count == 3) {
+        if (commonOrient == 'l') {
+          const tW = Data.maxW
+          const tH = Math.floor(Data.maxW / Data.images[0].ratio)
+
           result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
-
-          commonOrient = 'p' /* portrait */
+          result = [ ...result, ...PhotoMosaic.processInlineThumbs(Data.images.slice(1)) ]
         }
+        else if (commonOrient == 'p') {
+          let tW = Data.maxW * options.sizes.firstThumbMaxWidth
+          let tH = Math.floor(tW / Data.images[0].ratio)
 
-
-        ////   2   ////////////////////////////////////////////////////////////////////
-
-        if (count == 2) {
-          if (orients == 'll') {
-            // TODO check if Images width is more than Container's
-
-            result[0] = PhotoMosaic.compute(Data.images[0], Data.maxW,  Math.floor(Data.maxW / Data.images[0].ratio))
-            result[1] = PhotoMosaic.compute(Data.images[1], Data.maxW,  Math.floor(Data.maxW / Data.images[1].ratio))
+          if (tH > Data.maxH) {
+            tH = Data.maxH
+            tW = Data.maxH * Data.images[0].ratio
           }
-          else {
-            result = PhotoMosaic.processInlineThumbs(Data.images)
-          }
+
+          Data.wrapperWidth += tW
+
+          result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+          result = [ ...result, ...PhotoMosaic.processColumnThumbs(Data.images.slice(1), tW, tH) ]
         }
+      }
 
 
-        ////   3   ///////////////////////////////////////////////////////////////////
+      ////   4   ///////////////////////////////////////////////////////////////////
 
-        else if (count == 3) {
-          if (commonOrient == 'l') {
-            const tW = Data.maxW
-            const tH = Math.floor(Data.maxW / Data.images[0].ratio)
+      else if (count == 4) {
+        if (commonOrient == 'l') {
+          const tW = Data.maxW
+          const tH = Math.floor(Data.maxW / Data.images[0].ratio)
 
-            result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
-            result = [ ...result, ...PhotoMosaic.processInlineThumbs(Data.images.slice(1)) ]
-          }
-          else if (commonOrient == 'p') {
-            let tW = Data.maxW * options.sizes.firstThumbMaxWidth
-            let tH = Math.floor(tW / Data.images[0].ratio)
-
-            if (tH > Data.maxH) {
-              tH = Data.maxH
-              tW = Data.maxH * Data.images[0].ratio
-            }
-
-            Data.wrapperWidth += tW
-
-            result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
-            result = [ ...result, ...PhotoMosaic.processColumnThumbs(Data.images.slice(1), tW, tH) ]
-          }
+          result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+          result = [ ...result, ...PhotoMosaic.processInlineThumbs(Data.images.slice(1)) ]
         }
+        else if (commonOrient == 'p') {
+          let tW = Data.maxW * options.sizes.firstThumbMaxWidth
+          let tH = Math.floor(tW / Data.images[0].ratio)
 
-
-        ////   4   ///////////////////////////////////////////////////////////////////
-
-        else if (count == 4) {
-          if (commonOrient == 'l') {
-            const tW = Data.maxW
-            const tH = Math.floor(Data.maxW / Data.images[0].ratio)
-
-            result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
-            result = [ ...result, ...PhotoMosaic.processInlineThumbs(Data.images.slice(1)) ]
+          if (tH > Data.maxH) {
+            tH = Data.maxH
+            tW = Data.maxH * Data.images[0].ratio
           }
-          else if (commonOrient == 'p') {
-            let tW = Data.maxW * options.sizes.firstThumbMaxWidth
-            let tH = Math.floor(tW / Data.images[0].ratio)
 
-            if (tH > Data.maxH) {
-              tH = Data.maxH
-              tW = Data.maxH * Data.images[0].ratio
-            }
+          Data.wrapperWidth += tW
 
-            Data.wrapperWidth += tW
-
-            result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
-            result = [ ...result, ...PhotoMosaic.processColumnThumbs(Data.images.slice(1), tW, tH) ]
-          }
+          result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+          result = [ ...result, ...PhotoMosaic.processColumnThumbs(Data.images.slice(1), tW, tH) ]
         }
       }
 
@@ -366,15 +424,41 @@
           }
         })
 
-        const linesHeightRatio = getArraySummary(lines.map((line) => line.avgH)) / Data.maxH
+        const sumLinesHeight    = getArraySummary(lines.map((line) => line.avgH))
+        const linesHeightRatio  = sumLinesHeight / Data.maxH
 
-        each(lines, (line) => {
-          line.maxH = line.avgH / linesHeightRatio
-        })
+        if (linesHeightRatio > 1.2) {
+          if (commonOrient == 'l') {
+            const tW = Data.maxW
+            const tH = Math.floor(Data.maxW / Data.images[0].ratio)
 
-        result = lines.reduce((result, line) => {
-          return [ ...result, ...PhotoMosaic.processInlineThumbs(line.items, line.minH, line.maxH) ]
-        }, [])
+            result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+            result = [ ...result, ...PhotoMosaic.processInlineThumbs(Data.images.slice(1, 4)) ]
+          }
+          else if (commonOrient == 'p') {
+            let tW = Data.maxW * options.sizes.firstThumbMaxWidth
+            let tH = Math.floor(tW / Data.images[0].ratio)
+
+            if (tH > Data.maxH) {
+              tH = Data.maxH
+              tW = Data.maxH * Data.images[0].ratio
+            }
+
+            Data.wrapperWidth += tW
+
+            result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
+            result = [ ...result, ...PhotoMosaic.processColumnThumbs(Data.images.slice(1, 4), tW, tH) ]
+          }
+        }
+        else {
+          each(lines, (line) => {
+            line.maxH = line.avgH / linesHeightRatio
+          })
+
+          result = lines.reduce((result, line) => {
+            return [ ...result, ...PhotoMosaic.processInlineThumbs(line.items, line.minH, line.maxH) ]
+          }, [])
+        }
       }
 
       Data.thumbs = result
