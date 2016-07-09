@@ -1,5 +1,4 @@
-((window) => {
-
+function PhotoMosaic(el, opts, imageUrls) {
   let Data = {
     container: null,
     containerWidth: null,
@@ -33,7 +32,7 @@
   }
 
   function size(value) {
-  	return `${ value }px`
+    return `${ value }px`
   }
 
   function getMinInArray(arr) {
@@ -49,7 +48,7 @@
   function getAverageInArray(arr) {
     return getArraySummary(arr) / arr.length
   }
-  
+
 
   const PhotoMosaic = {
     compute: (img, w, h) => {
@@ -121,7 +120,7 @@
 
       el.style.display      = 'inline-block'
       el.style.padding      = size(5)
-      el.style.boxShadow    = 'rgba(0,0,0, 0.19) 0 1px 1px 1px'
+      el.style.boxShadow    = 'rgba(0,0,0, 0.14) 0 0 1px 1px'
 
       el.appendChild(PhotoMosaic.drawWrapper())
 
@@ -309,7 +308,7 @@
           tW = Data.images[0].width
           tH = Data.images[0].height > Data.maxH ? Data.maxH : Data.images[0].height
         }
-  
+
         result[0] = PhotoMosaic.compute(Data.images[0], tW, tH)
       }
 
@@ -505,7 +504,7 @@
     },
 
     init: async (el, opts, imageUrls) => {
-      Data.container = document.getElementById(el)
+      Data.container = typeof el == 'string' ? document.getElementById(el) : el
       options = { ...options, ...opts }
 
       if (imageUrls) {
@@ -517,10 +516,9 @@
       PhotoMosaic.appendThumbs()
     }
   }
-  
 
-  window.photomosaic = {
-    init: PhotoMosaic.init
-  }
+  PhotoMosaic.init(el, opts, imageUrls)
+}
 
-})(window)
+
+export default PhotoMosaic

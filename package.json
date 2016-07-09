@@ -1,14 +1,14 @@
 {
   "name": "photomosaic",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Grid layout for images",
-  "author": "Pavel Ivanov (grammka@gmail.com)",
+  "author": {
+    "name": "Pavel Ivanov",
+    "email": "grammka@gmail.com"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/grammka/photomosaic.git"
-  },
-  "bugs": {
-    "url": "https://github.com/grammka/photomosaic/issues"
   },
   "keywords": [
     "grid",
@@ -19,19 +19,24 @@
   "license": "MIT",
   "main": "./lib",
   "scripts": {
+    "prepublish": "npm run build",
+    "publish": "surge ./example photomosaic.surge.sh",
+    "start": "npm run build && npm run serve",
     "clean": "rimraf ./lib",
-    "dev": "babel ./src --out-dir ./lib  --watch",
-    "build": "npm run clean && babel ./src --out-dir ./lib"
+    "dev": "babel ./src --out-dir ./lib  -w",
+    "build": "npm run clean && babel ./src --out-dir ./lib && npm run copy && npm run browserify",
+    "copy": "cp ./lib/index.js ./example/photomosaic.js",
+    "browserify": "browserify -e ./example/app.js -o ./example/bundle.js",
+    "serve": "serve ./example"
   },
-  "dependencies": {
-    "wolfy87-eventemitter": "^5.1.0"
-  },
+  "dependencies": {},
+  "peerDependencies": {},
   "devDependencies": {
     "babel-cli": "^6.7.5",
-    "babel-core": "^6.7.6",
-    "babel-plugin-transform-runtime": "^6.9.0",
-    "babel-polyfill": "^6.9.1",
-    "babel-preset-es2015": "^6.9.0",
-    "babel-preset-stage-0": "^6.5.0"
+    "babel-preset-es2015": "^6.6.0",
+    "babel-preset-stage-0": "^6.3.13",
+    "browserify": "^13.0.1",
+    "rimraf": "^2.5.0",
+    "serve": "^1.4.0"
   }
 }
