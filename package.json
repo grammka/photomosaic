@@ -29,7 +29,9 @@
     "browserify": "browserify -e ./example/app.js -o ./example/bundle.js",
     "serve": "serve ./example"
   },
-  "dependencies": {},
+  "dependencies": {
+    "deepmerge": "^0.2.10"
+  },
   "peerDependencies": {},
   "devDependencies": {
     "babel-cli": "^6.7.5",

@@ -1,3 +1,6 @@
+import merge from 'lodash.merge'
+
+
 function PhotoMosaic(el, opts, imageUrls) {
   let Data = {
     container: null,
@@ -11,8 +14,10 @@ function PhotoMosaic(el, opts, imageUrls) {
 
   let options = {
     editable: false,
+    showMoreTitle: null,
     sizes: {
       gutter: 5,
+      containerMaxWidth: null,
       containerMaxHeight: 0.8,
       firstThumbMaxWidth: 0.666,
       firstThumbMaxHeight: 0.666,
@@ -75,11 +80,11 @@ function PhotoMosaic(el, opts, imageUrls) {
       block.style.fontFamily    = 'Tahoma, sans-serif'
 
       left.style.float    = 'left'
-      left.innerHTML      = `${ Data.thumbs.length } of ${ Data.images.length }`
+      left.innerHTML      = `${ Data.thumbs.length } ${ options.imagesOfCountText || 'of' } ${ Data.images.length }`
 
       right.style.float   = 'right'
       right.style.cursor  = 'pointer'
-      right.innerHTML     = 'Show more'
+      right.innerHTML     = options.showMoreTitle || 'Show more'
 
       right.addEventListener('mouseenter', () => {
         right.style.color = '#000'
@@ -89,9 +94,12 @@ function PhotoMosaic(el, opts, imageUrls) {
         right.style.color = '#666'
       })
 
-      right.addEventListener('click', () => {
-        // TODO open more
-      })
+      if (typeof options.onShowMore == 'function') {
+        right.addEventListener('click', () => {
+          options.onShowMore()
+        })
+      }
+
 
 
       block.appendChild(left)
@@ -118,9 +126,10 @@ function PhotoMosaic(el, opts, imageUrls) {
     drawCard: () => {
       const el = document.createElement('div')
 
-      el.style.display      = 'inline-block'
-      el.style.padding      = size(5)
-      el.style.boxShadow    = 'rgba(0,0,0, 0.14) 0 0 1px 1px'
+      el.style.display          = 'inline-block'
+      el.style.backgroundColor  = '#fff'
+      el.style.padding          = size(options.sizes.gutter)
+      el.style.boxShadow        = 'rgba(0,0,0, 0.14) 0 0 1px 1px'
 
       el.appendChild(PhotoMosaic.drawWrapper())
 
@@ -206,9 +215,16 @@ function PhotoMosaic(el, opts, imageUrls) {
       el.style.overflow   = 'hidden'
       el.style.float      = 'left'
 
+      if (typeof options.onImageClick == 'function') {
+        el.addEventListener('click', () => {
+          options.onImageClick(thumb.img.index)
+        })
+      }
+
       if (options.editable) {
         el.appendChild(PhotoMosaic.thumbCloseElement(thumb))
       }
+
       el.appendChild(PhotoMosaic.thumbImgElement(thumb))
 
       return el
@@ -263,7 +279,7 @@ function PhotoMosaic(el, opts, imageUrls) {
     },
 
     processThumbs: () => {
-      Data.maxW          = Data.containerWidth = Data.container.offsetWidth
+      Data.maxW          = Data.containerWidth = Data.container.offsetWidth - options.sizes.gutter * 2
       Data.maxH          = Data.maxW * options.sizes.containerMaxHeight
       Data.wrapperWidth  = 0
 
@@ -505,7 +521,13 @@ function PhotoMosaic(el, opts, imageUrls) {
 
     init: async (el, opts, imageUrls) => {
       Data.container = typeof el == 'string' ? document.getElementById(el) : el
-      options = { ...options, ...opts }
+      options = merge(options, opts)
+
+      if (options.sizes.containerMaxWidth && Data.container.clientWidth > options.sizes.containerMaxWidth) {
+        Data.container.style.width = size(options.sizes.containerMaxWidth)
+      } else {
+        Data.container.style.width = size(Data.container.clientWidth)
+      }
 
       if (imageUrls) {
         await PhotoMosaic.loadImages(imageUrls)
